@@ -217,15 +217,28 @@ void f_move(void *arg) {
     }
 }
 
-void f_checkbattery (void) {
+void f_battery (void *arg) {
     /* INIT */
     RT_TASK_INFO info;
     rt_task_inquire(NULL, &info);
     printf("Init %s\n", info.name);
     rt_sem_p(&sem_barrier, TM_INFINITE);
  
+#ifdef _WITH_TRACE_
+    printf("%s: start period\n", info.name);
+#endif
+    rt_task_set_periodic(NULL, TM_NOW, 500000000);
+    rt_task_wait_period(NULL);
+ 
+#ifdef _WITH_TRACE_
+    printf("%s: start period\n", info.name);
+#endif 
     
-       send_command_to_robot(DMB_GET_VBAT);
+    //boucle + check connexion robot
+    send_command_to_robot(DMB_GET_VBAT);
+    MessageToMon msg;
+    set_msgToMon_header(&msg, HEADER_STM_BAT);
+    write_in_queue(&q_messageToMon, msg);
 }
 
 void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {

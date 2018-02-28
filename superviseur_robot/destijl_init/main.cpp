@@ -25,6 +25,7 @@ RT_TASK th_receiveFromMon;
 RT_TASK th_openComRobot;
 RT_TASK th_startRobot;
 RT_TASK th_move;
+RT_TASK th_battery ;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
@@ -33,6 +34,8 @@ int PRIORITY_TMOVE = 10;
 int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
+int PRIORITY_TBATTERY = 35 ;
+
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
@@ -145,6 +148,10 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+     if (err = rt_task_create(&th_battery, "th_battery", 0, PRIORITY_TBATTERY, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
 
     /* Creation des files de messages */
     if (err = rt_queue_create(&q_messageToMon, "toto", MSG_QUEUE_SIZE * sizeof (MessageToRobot), MSG_QUEUE_SIZE, Q_FIFO)) {
@@ -174,11 +181,15 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_move, &f_move, NULL)) {
+    /*if (err = rt_task_start(&th_move, &f_move, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }*/
+    if (err = rt_task_start(&th_server, &f_server, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_server, &f_server, NULL)) {
+    if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -188,4 +199,5 @@ void deleteTasks() {
     rt_task_delete(&th_server);
     rt_task_delete(&th_openComRobot);
     rt_task_delete(&th_move);
+    rt_task_delete(&th_battery) ;
 }
