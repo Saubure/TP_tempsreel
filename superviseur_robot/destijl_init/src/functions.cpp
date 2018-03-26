@@ -116,12 +116,31 @@ void f_receiveFromMon(void *arg) {
         }else if (strcmp(msg.header, HEADER_MTS_CAMERA) == 0) {
             
             if (msg.data[0] == CAM_OPEN) {
+                
+                rt_sem_v(&sem_openCamera) ;
+                
             }else if (msg.data[0]  == CAM_ASK_ARENA) {
                 
+                rt_mutex_acquire(&mutex_ChercheArene,TM_INFINITE) ;
+                ChercheArene = 1 ;
+                rt_mutex_release(&mutex_ChercheArene) ;
+                
             }else if (msg.data[0] == CAM_ARENA_CONFIRM) {
+                
+                rt_sem_v(&AreneOk) ;
+                AreneOk = 1 ;
+                
             }else if (msg.data[0] == CAM_ARENA_INFIRM) {
+                
+                rt_sem_v(&AreneOk);
+                AreneOk = 0 ;
+                
             }else if (msg.data[0] == CAM_COMPUTE_POSITION){
+                
+                Position = 1 ;
             }else if (msg.data[0] == CAM_STOP_COMPUTE_POSITION){
+                
+                Position = 0 ;
             }
         }
     } while (err > 0);

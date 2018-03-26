@@ -39,12 +39,15 @@ int PRIORITY_TBATTERY = 35 ;
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
+RT_MUTEX mutex_ChercheArene ;
 
 // Déclaration des sémaphores
 RT_SEM sem_barrier;
 RT_SEM sem_openComRobot;
 RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
+RT_SEM sem_openCamera ;
+RT_SEM sem_AreneOk ;
 
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
@@ -55,6 +58,9 @@ int MSG_QUEUE_SIZE = 10;
 int etatCommMoniteur = 1;
 int robotStarted = 0;
 char move = DMB_STOP_MOVE;
+int ChercheArene = 0 ;
+int Position = 0 ;
+int AreneOk = 0 ;
 
 /**
  * \fn void initStruct(void)
