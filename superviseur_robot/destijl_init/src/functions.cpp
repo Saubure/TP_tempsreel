@@ -12,7 +12,7 @@ void f_server(void *arg) {
     printf("Init %s\n", info.name);
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
-    //err = run_nodejs("/usr/local/bin/node", "/home/pi/Interface_Robot/server.js");
+    err = run_nodejs("/usr/local/bin/node", "/home/pi/Interface_Robot/server.js");
 
     if (err < 0) {
         printf("Failed to start nodejs: %s\n", strerror(-err));
@@ -108,6 +108,20 @@ void f_receiveFromMon(void *arg) {
                 printf("%s: message update movement with %c\n", info.name, move);
 #endif
 
+            } else if (msg.data[0] == DMB_START_WITH_WD) {
+            
+                rt_sem_v(&)
+            
+            }
+        }else if (strcmp(msg.header, HEADER_MTS_CAMERA) == 0) {
+            
+            if (msg.data[0] == CAM_OPEN) {
+            }else if (msg.data[0]  == CAM_ASK_ARENA) {
+                
+            }else if (msg.data[0] == CAM_ARENA_CONFIRM) {
+            }else if (msg.data[0] == CAM_ARENA_INFIRM) {
+            }else if (msg.data[0] == CAM_COMPUTE_POSITION){
+            }else if (msg.data[0] == CAM_STOP_COMPUTE_POSITION){
             }
         }
     } while (err > 0);
@@ -224,21 +238,36 @@ void f_battery (void *arg) {
     printf("Init %s\n", info.name);
     rt_sem_p(&sem_barrier, TM_INFINITE);
  
-#ifdef _WITH_TRACE_
-    printf("%s: start period\n", info.name);
-#endif
     rt_task_set_periodic(NULL, TM_NOW, 500000000);
-    rt_task_wait_period(NULL);
  
+    while (1) {
+    rt_task_wait_period(NULL);
 #ifdef _WITH_TRACE_
+    // mode verbose
     printf("%s: start period\n", info.name);
 #endif 
     
     //boucle + check connexion robot
-    send_command_to_robot(DMB_GET_VBAT);
+    rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+    if (robotStarted) {
+            
+    // allocation message
     MessageToMon msg;
+    int char_msg = 0;
+    
+    // acquisition valeur
+    char_msg = send_command_to_robot(DMB_GET_VBAT);
+    char_msg += 48; // passage code ascii
+    
+    // écriture message
+    set_msgToMon_data(&msg, &char_msg);
     set_msgToMon_header(&msg, HEADER_STM_BAT);
+    
+    // envoi message
     write_in_queue(&q_messageToMon, msg);
+        }
+    rt_mutex_release(&mutex_robotStarted);
+    }
 }
 
 void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
@@ -246,4 +275,36 @@ void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
     buff = rt_queue_alloc(&q_messageToMon, sizeof (MessageToMon));
     memcpy(buff, &msg, sizeof (MessageToMon));
     rt_queue_send(&q_messageToMon, buff, sizeof (MessageToMon), Q_NORMAL);
+}
+
+void send_command_to_robot_SAFE(char cmd, const char * arg){
+    
+    static int cmpt = 0;
+    
+    rt_mutex_acquire(&mutex_send_command_to_robot);
+    
+    switch (send_command_to_robot(char cmd, const char * arg) ){
+        
+        case ROBOT_OK:
+            cmpt = 0;
+            break;
+        
+        default :
+            cmpt  ++;
+            break;
+    };
+    
+    
+    if ( cmpt >=3 ){
+        // message(LOST_DMB)
+        MessageToMon msg;
+        msg.header = HEADER_STM_LOST_DMB;
+        msg.data = &void;
+        write_in_queue(&q_messageToMon, msg);
+        // close_communication_robot();
+        // TO DO: fonction de reset/close_communication_robot
+    }
+    
+    
+    rt_mutex_release(mutex_send_command_to_robot);
 }

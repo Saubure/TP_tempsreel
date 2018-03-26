@@ -69,6 +69,8 @@ void f_openComRobot(void * arg);
 void f_move(void *arg);
 void f_startRobot(void *arg);
 void f_battery(void *arg) ;
+void write_in_queue(RT_QUEUE *queue, MessageToMon msg);
+void send_command_to_robot_SAFE(char cmd, const char * arg);
 
 #endif /* FUNCTIONS_H */
 
