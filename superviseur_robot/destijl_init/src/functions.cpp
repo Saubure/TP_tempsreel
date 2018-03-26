@@ -1,5 +1,8 @@
 #include "../header/functions.h"
 
+#define RESET 0
+#define KILL_COM_ROBOT 1
+
 char mode_start;
 
 void write_in_queue(RT_QUEUE *, MessageToMon);
@@ -368,7 +371,69 @@ printf("%s : there is a problem with the camera\n", info.name);
 
 void f_manageImage (void *arg)  {
 
+    /* INIT */
+    RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+ 
+    rt_task_set_periodic(NULL, TM_NOW, 100000000);
+ 
+    while (1) {
+    rt_task_wait_period(NULL);
 
-
-
+// créer priorités open et manage
 }
+
+    
+void f_startRobotWithWatchdog(void * arg) {
+    int err;
+
+    /* INIT */
+    RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+    
+        err = send_command_to_robot(DMB_START_WITH_WD);
+        if (err == 0) {
+         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            robotStarted = 1;
+            rt_mutex_release(&mutex_robotStarted);
+            MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_ACK);
+            write_in_queue(&q_messageToMon, msg);
+        } else {
+            MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
+            write_in_queue(&q_messageToMon, msg);
+        }
+        
+    rt_task_set_periodic(NULL, TM_NOW, 1000000000);
+ 
+    while (1) {
+    rt_task_wait_period(NULL);
+    send_command_to_robot(DMB_RELOAD_WD);
+    }
+}
+    
+int gestion_erreurs(int typeErreur){
+    
+    RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+    
+    switch(typeErreur){
+            case RESET: // F6
+                
+                 break;
+            
+            case KILL_COM_ROBOT: // F9
+    
+                 break;
+            
+    }
+    
+}
+
