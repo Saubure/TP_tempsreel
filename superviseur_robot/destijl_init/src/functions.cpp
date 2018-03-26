@@ -121,26 +121,26 @@ void f_receiveFromMon(void *arg) {
                 
             }else if (msg.data[0]  == CAM_ASK_ARENA) {
                 
-                rt_mutex_acquire(&mutex_ChercheArene,TM_INFINITE) ;
-                ChercheArene = 1 ;
-                rt_mutex_release(&mutex_ChercheArene) ;
+                rt_mutex_acquire(&mutex_chercheArene,TM_INFINITE) ;
+                chercheArene = 1 ;
+                rt_mutex_release(&mutex_chercheArene) ;
                 
             }else if (msg.data[0] == CAM_ARENA_CONFIRM) {
                 
-                rt_sem_v(&AreneOk) ;
-                AreneOk = 1 ;
+                rt_sem_v(&areneOk) ;
+                areneOk = 1 ;
                 
             }else if (msg.data[0] == CAM_ARENA_INFIRM) {
                 
-                rt_sem_v(&AreneOk);
-                AreneOk = 0 ;
+                rt_sem_v(&areneOk);
+                areneOk = 0 ;
                 
             }else if (msg.data[0] == CAM_COMPUTE_POSITION){
                 
-                Position = 1 ;
+                position = 1 ;
             }else if (msg.data[0] == CAM_STOP_COMPUTE_POSITION){
                 
-                Position = 0 ;
+                position = 0 ;
             }
         }
     } while (err > 0);
@@ -173,6 +173,9 @@ void f_openComRobot(void * arg) {
             set_msgToMon_header(&msg, HEADER_STM_ACK);
             write_in_queue(&q_messageToMon, msg);
         } else {
+#ifdef _WITH_TRACE_
+printf("%s : there is a problem with the communication \n", info.name);
+#endif
             MessageToMon msg;
             set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
             write_in_queue(&q_messageToMon, msg);
@@ -326,4 +329,46 @@ void send_command_to_robot_SAFE(char cmd, const char * arg){
     
     
     rt_mutex_release(mutex_send_command_to_robot);
+}
+void f_openCamera(void * arg) {
+    int err;
+
+    /* INIT */
+    RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    while (1) {
+#ifdef _WITH_TRACE_
+        printf("%s : Wait sem_openCamera\n", info.name);
+#endif
+        rt_sem_p(&sem_openCamera, TM_INFINITE);
+#ifdef _WITH_TRACE_
+        printf("%s : sem_openCamera arrived => open camera\n", info.name);
+#endif
+        err = open_camera();
+        if (err == 0) {
+#ifdef _WITH_TRACE_
+            printf("%s : the camera is opened\n", info.name);
+#endif
+            MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_ACK);
+            write_in_queue(&q_messageToMon, msg);
+        } else {
+#ifdef _WITH_TRACE_
+printf("%s : there is a problem with the camera\n", info.name);
+#endif
+            MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
+            write_in_queue(&q_messageToMon, msg);
+        }
+    }
+}
+
+void f_manageImage (void *arg)  {
+
+
+
+
 }
