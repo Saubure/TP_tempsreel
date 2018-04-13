@@ -26,20 +26,25 @@ RT_TASK th_openComRobot;
 RT_TASK th_startRobot;
 RT_TASK th_move;
 RT_TASK th_battery ;
+RT_TASK th_openCamera;
+RT_TASK th_manageImage;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
 int PRIORITY_TOPENCOMROBOT = 20;
-int PRIORITY_TMOVE = 10;
+int PRIORITY_TMOVE = 20;
 int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TBATTERY = 35 ;
-
+int PRIORITY_TOPENCAMERA = 15;
+int PRIORITY_MANAGEIMAGE = 10 ;
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 RT_MUTEX mutex_chercheArene ;
+RT_MUTEX mutex_send_command_to_robot ;
+
 
 // Déclaration des sémaphores
 RT_SEM sem_barrier;
@@ -48,7 +53,8 @@ RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
 RT_SEM sem_openCamera ;
 RT_SEM sem_areneOk ;
-
+RT_SEM sem_startRobotWD;
+RT_SEM sem_camStarted;
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
 
@@ -61,6 +67,7 @@ char move = DMB_STOP_MOVE;
 int chercheArene = 0 ;
 int position = 0 ;
 int areneOk = 0 ;
+int camStarted = 0;
 
 /**
  * \fn void initStruct(void)
@@ -114,8 +121,13 @@ void initStruct(void) {
     if (err = rt_mutex_create(&mutex_chercheArene, NULL)) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
+    }    
+    if (err = rt_mutex_create(&mutex_send_command_to_robot, NULL)) {
+        printf("Error mutex create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
     }
 
+    
     /* Creation du semaphore */
     if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO)) {
         printf("Error semaphore create: %s\n", strerror(-err));
@@ -138,6 +150,14 @@ void initStruct(void) {
         exit(EXIT_FAILURE);
     }
        if (err = rt_sem_create(&sem_openCamera, NULL, 0, S_FIFO)) {
+        printf("Error semaphore create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+       if (err = rt_sem_create(&sem_startRobotWD, NULL, 0, S_FIFO)) {
+        printf("Error semaphore create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+        if (err = rt_sem_create(&sem_camStarted, NULL,0, S_FIFO)) {
         printf("Error semaphore create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -175,7 +195,10 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-
+    if (err = rt_task_create(&th_manageImage, "th_Image", 0, PRIORITY_MANAGEIMAGE, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
     /* Creation des files de messages */
     if (err = rt_queue_create(&q_messageToMon, "toto", MSG_QUEUE_SIZE * sizeof (MessageToRobot), MSG_QUEUE_SIZE, Q_FIFO)) {
         printf("Error msg queue create: %s\n", strerror(-err));
@@ -204,23 +227,28 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    /*if (err = rt_task_start(&th_move, &f_move, NULL)) {
+    if (err = rt_task_start(&th_move, &f_move, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
-     }*/
+     } 
  
-    if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
+    /*if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
-    } 
+    }*/
     if (err = rt_task_start(&th_server, &f_server, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_openCamera, &f_openCamera, 0, PRIORITY_TOPENCAMERA, 0)) {
+    if (err = rt_task_start(&th_openCamera, &f_openCamera, NULL)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+
+   /* if (err = rt_task_start(&th_manageImage, &f_manageImage, NULL)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }*/
 }
 
 void deleteTasks() {
@@ -229,4 +257,5 @@ void deleteTasks() {
     rt_task_delete(&th_move);
     rt_task_delete(&th_battery) ;
     rt_task_delete(&th_openCamera) ;
+    rt_task_delete(&th_manageImage) ;
 }
