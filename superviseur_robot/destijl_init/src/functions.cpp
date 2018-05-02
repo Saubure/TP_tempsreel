@@ -445,7 +445,28 @@ void f_manageImage(void *arg) {
              chercheArene = 0;   
 
             }
-           rt_mutex_release(&mutex_chercheArene);
+            rt_mutex_release(&mutex_chercheArene);
+             if (position == 1) {
+
+                        err = detect_position(&monImage, &maPosition, &monArene);
+
+                        if (err == 0) {
+
+                            maPosition.center.x = -1;
+                            maPosition.center.y = -1;
+                            maPosition.angle = 0;
+
+                        }
+
+                        draw_position(&monImage, &Image_pos, &maPosition);
+
+                        monImage=Image_pos ;
+                        send_message_to_monitor(HEADER_STM_POS,&maPosition);
+                    }
+
+
+
+           
            compress_image(&monImage, &Image_envoi);
            send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi); 
         }
