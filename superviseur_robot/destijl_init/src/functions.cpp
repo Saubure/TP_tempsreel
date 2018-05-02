@@ -31,7 +31,7 @@ void f_server(void *arg) {
         exit(EXIT_FAILURE);
     } else {
 #ifdef _WITH_TRACE_
-        printf("%s: nodejs started\n", info.name);
+        printf("%s         : nodejs started\n", info.name);
 #endif
         open_server();
        // printf("Server OK!\n");
@@ -50,7 +50,7 @@ void f_sendToMon(void * arg) {
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
 #ifdef _WITH_TRACE_
-    printf("%s : waiting for sem_serverOk\n", info.name);
+    printf("%s      : waiting for sem_serverOk\n", info.name);
 #endif
     rt_sem_p(&sem_serverOk, TM_INFINITE);
     while (1) {
@@ -174,7 +174,7 @@ void f_openComRobot(void * arg) {
 
     while (1) {
 #ifdef _WITH_TRACE_
-        printf("%s : Wait sem_openComRobot\n", info.name);
+        printf("%s   : waiting for sem_openComRobot\n", info.name);
 #endif
         rt_sem_p(&sem_openComRobot, TM_INFINITE);
 #ifdef _WITH_TRACE_
@@ -211,7 +211,7 @@ void f_startRobot(void * arg) {
 
     while (1) {
 #ifdef _WITH_TRACE_
-        printf("%s : Wait sem_startRobot\n", info.name);
+        printf("%s     : waiting for  sem_startRobot\n", info.name);
 #endif
         rt_sem_p(&sem_startRobot, TM_INFINITE);
 #ifdef _WITH_TRACE_
@@ -245,17 +245,17 @@ void f_move(void *arg) {
 
     /* PERIODIC START */
 #ifdef _WITH_TRACE_
-    printf("%s: start period\n", info.name);
+    //printf("%s: start period\n", info.name);
 #endif
     rt_task_set_periodic(NULL, TM_NOW, 100000000);
     while (1) {
 #ifdef _WITH_TRACE_
-        printf("%s: Wait period \n", info.name);
+        //printf("%s: Wait period \n", info.name);
 #endif
         rt_task_wait_period(NULL);
 #ifdef _WITH_TRACE_
-        printf("%s: Periodic activation\n", info.name);
-        printf("%s: move equals %c\n", info.name, move);
+        //printf("%s: Periodic activation\n", info.name);
+        //printf("%s: move equals %c\n", info.name, move);
 #endif
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         if (robotStarted) {
@@ -263,7 +263,7 @@ void f_move(void *arg) {
             send_command_to_robot(move);
             rt_mutex_release(&mutex_move);
 #ifdef _WITH_TRACE_
-            printf("%s: the movement %c was sent\n", info.name, move);
+            //printf("%s: the movement %c was sent\n", info.name, move);
 #endif            
         }
         rt_mutex_release(&mutex_robotStarted);
@@ -437,7 +437,6 @@ void f_manageImage(void *arg) {
     rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
     int err;
-    printf(" je vais rentrer dans le while \n");
     while (1) {
         rt_task_wait_period(NULL);
         rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
@@ -513,36 +512,74 @@ void f_manageImage(void *arg) {
         
     
 
-void f_startRobotWithWatchdog(void * arg) {
+void f_startRobotWD(void * arg) {
     int err;
-
+    int compteur ;
     /* INIT */
     RT_TASK_INFO info;
     rt_task_inquire(NULL, &info);
     printf("Init %s\n", info.name);
     rt_sem_p(&sem_barrier, TM_INFINITE);
-
+    
+    rt_task_set_periodic(NULL, TM_NOW, 1000000000);
+    #ifdef _WITH_TRACE_
+        printf("%s     : waiting for  sem_startRobotWD\n", info.name);
+#endif
+    rt_sem_p(&sem_startRobotWD,TM_INFINITE);
+    #ifdef _WITH_TRACE_
+        printf("%s     : sem reçu\n", info.name);
+#endif
     err = send_command_to_robot(DMB_START_WITH_WD);
+      #ifdef _WITH_TRACE_
+        printf("%s     : miaou fait le chat\n", info.name);
+#endif
     if (err == 0) {
+        
+            #ifdef _WITH_TRACE_
+        printf("%s     : ca marche ! :o \n", info.name);
+#endif
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         robotStarted = 1;
         rt_mutex_release(&mutex_robotStarted);
         MessageToMon msg;
         set_msgToMon_header(&msg, HEADER_STM_ACK);
         write_in_queue(&q_messageToMon, msg);
+        
+
+        while (1) {
+            rt_task_wait_period(NULL);
+            err = send_command_to_robot(DMB_RELOAD_WD);
+            if (err == 0) {
+                compteur = 0;
+
+            } else {
+                compteur += 1;
+
+            }
+
+            if (compteur == 3) {
+                MessageToMon msg;
+                set_msgToMon_header(&msg, HEADER_STM_LOST_DMB);
+                write_in_queue(&q_messageToMon, msg);
+                close_communication_robot();
+            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            robotStarted = 0;
+            rt_mutex_release(&mutex_robotStarted);
+            }
+
+        }
+        
     } else {
         MessageToMon msg;
         set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
         write_in_queue(&q_messageToMon, msg);
     }
 
-    rt_task_set_periodic(NULL, TM_NOW, 1000000000);
+   
 
-    while (1) {
-        rt_task_wait_period(NULL);
-        send_command_to_robot(DMB_RELOAD_WD);
+        
     }
-}
+
 
 int gestion_erreurs(int typeErreur) {
 

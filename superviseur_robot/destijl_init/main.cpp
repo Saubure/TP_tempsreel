@@ -29,6 +29,7 @@ RT_TASK th_battery ;
 RT_TASK th_openCamera;
 RT_TASK th_manageImage;
 RT_TASK th_closeCamera;
+RT_TASK th_startRobotWD ;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
@@ -41,6 +42,7 @@ int PRIORITY_TBATTERY = 35 ;
 int PRIORITY_TOPENCAMERA = 25;
 int PRIORITY_TMANAGEIMAGE = 20 ;
 int PRIORITY_TCLOSECAMERA = 20 ;
+int PRIORITY_TSTARTROBOTWD = 25;
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
@@ -97,14 +99,14 @@ int main(int argc, char **argv) {
     //Lock the memory to avoid memory swapping for this program
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
-    printf("#################################\n");
+    printf("\n\n\n\n#################################\n");
     printf("#      DE STIJL PROJECT         #\n");
     printf("#################################\n");
 
     initStruct();
-    printf("#STRUCT INITIALISEES#\n");
+    printf("\n# STRUCT INITIALISEES #\n\n");
     startTasks();
-    printf("#TACHES LANCEEES#\n");
+    printf("\n# TACHES LANCEES #\n\n");
     rt_sem_broadcast(&sem_barrier);
  
     pause();
@@ -197,6 +199,10 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_create(&th_startRobotWD, "th_startRobotWD", 0, PRIORITY_TSTARTROBOTWD, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
     if (err = rt_task_create(&th_move, "th_move", 0, PRIORITY_TMOVE, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
@@ -253,7 +259,10 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
- 
+        if (err = rt_task_start(&th_startRobotWD, &f_startRobotWD, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    } 
     if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
@@ -282,10 +291,10 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-   /* if (err = rt_task_start(&th_move, &f_move, NULL)) {
+    if (err = rt_task_start(&th_move, &f_move, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
-     } */
+     } 
 
 }
 
