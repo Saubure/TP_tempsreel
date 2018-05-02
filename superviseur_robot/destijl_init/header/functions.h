@@ -76,7 +76,7 @@ extern int PRIORITY_TRECEIVEFROMMON;
 extern int PRIORITY_TSTARTROBOT;
 extern int PRIORITY_TBATTERY ;
 extern int PRIORITY_TOPENCAMERA ;
-extern int PRIORITY_MANAGEIMAGE;
+extern int PRIORITY_TMANAGEIMAGE;
 
 void f_server(void *arg);
 void f_sendToMon(void *arg);
@@ -86,7 +86,7 @@ void f_move(void *arg);
 void f_startRobot(void *arg);
 void f_battery(void *arg) ;
 void write_in_queue(RT_QUEUE *queue, MessageToMon msg);
-//void send_command_to_robot_SAFE(char cmd, const char * arg);
+void send_command_to_robot_SAFE(char cmd, const char * arg);
 void f_openCamera(void * arg) ;
 void f_manageImage(void *arg);
 #endif /* FUNCTIONS_H */

@@ -19,8 +19,9 @@ int serverSend(const void *data, int dataLength);
 int receive(char *data);
 
 int run_nodejs(const char * path, char * file) {
+   
     int ret;
-    //char *const parmList[] = {"/bin/ls", "-l", "/home", NULL};
+    // char *const parmList[] = {"/bin/ls", "-l", "/home", NULL}; // // //
     char * const parmList[] = {"node", file, NULL};
 
     if ((ret = fork()) == -1)
@@ -28,6 +29,7 @@ int run_nodejs(const char * path, char * file) {
     else if (ret == 0) {
         ret = execv(path, parmList);
     }
+    
     return ret;
 }
 

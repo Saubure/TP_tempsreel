@@ -38,7 +38,7 @@ int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TBATTERY = 35 ;
 int PRIORITY_TOPENCAMERA = 25;
-int PRIORITY_MANAGEIMAGE = 20 ;
+int PRIORITY_TMANAGEIMAGE = 20 ;
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
@@ -99,9 +99,14 @@ int main(int argc, char **argv) {
     printf("#################################\n");
 
     initStruct();
+    printf("#STRUCT INITIALISEES#\n");
     startTasks();
+    printf("#TACHES LANCEEES#\n");
     rt_sem_broadcast(&sem_barrier);
+ 
     pause();
+        
+    
     deleteTasks();
 
     return 0;
@@ -197,7 +202,7 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_manageImage, "th_manageImage", 0, PRIORITY_MANAGEIMAGE, 0)) {
+    if (err = rt_task_create(&th_manageImage, "th_manageImage", 0, PRIORITY_TMANAGEIMAGE, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -211,12 +216,45 @@ void initStruct(void) {
 void startTasks() {
 
     int err;
-    
+     
+    if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+       if (err = rt_task_start(&th_openCamera, &f_openCamera, NULL)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_manageImage, &f_manageImage, NULL)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_server, &f_server, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+     
     if (err = rt_task_start(&th_startRobot, &f_startRobot, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-
+ 
+    if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+       if (err = rt_task_start(&th_openCamera, &f_openCamera, NULL)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_manageImage, &f_manageImage, NULL)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_server, &f_server, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
     if (err = rt_task_start(&th_receiveFromMon, &f_receiveFromMon, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
@@ -232,25 +270,8 @@ void startTasks() {
     /*if (err = rt_task_start(&th_move, &f_move, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
-     } 
- 
-    /*if (err = rt_task_start(&th_battery, &f_battery, NULL)) {
-        printf("Error task start: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }*/
-    if (err = rt_task_start(&th_server, &f_server, NULL)) {
-        printf("Error task start: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    if (err = rt_task_start(&th_openCamera, &f_openCamera, NULL)) {
-        printf("Error task create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
+     } */
 
-    /*if (err = rt_task_start(&th_manageImage, &f_manageImage, NULL)) {
-        printf("Error task create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }*/
 }
 
 void deleteTasks() {

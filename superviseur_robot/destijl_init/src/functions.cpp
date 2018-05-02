@@ -15,23 +15,25 @@ Position maPosition;
 void write_in_queue(RT_QUEUE *, MessageToMon);
 
 void f_server(void *arg) {
-    int err;
+    
     /* INIT */
     RT_TASK_INFO info;
     rt_task_inquire(NULL, &info);
     printf("Init %s\n", info.name);
     rt_sem_p(&sem_barrier, TM_INFINITE);
-
+    
+    int err;
     err = run_nodejs("/usr/local/bin/node", "/home/pi/Interface_Robot/server.js");
 
     if (err < 0) {
-        printf("Failed to start nodejs: %s\n", strerror(-err));
+        //printf("Failed to start nodejs: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     } else {
 #ifdef _WITH_TRACE_
         printf("%s: nodejs started\n", info.name);
 #endif
         open_server();
+       // printf("Server OK!\n");
         rt_sem_broadcast(&sem_serverOk);
     }
 }
@@ -182,6 +184,7 @@ void f_openComRobot(void * arg) {
             MessageToMon msg;
             set_msgToMon_header(&msg, HEADER_STM_ACK);
             write_in_queue(&q_messageToMon, msg);
+            
         } else {
 #ifdef _WITH_TRACE_
             printf("%s : there is a problem with the communication \n", info.name);
@@ -276,7 +279,7 @@ void f_battery(void *arg) {
         rt_task_wait_period(NULL);
 #ifdef _WITH_TRACE_
         // mode verbose
-        printf("%s: start period\n", info.name);
+        // printf("%s: start period\n", info.name);
 #endif 
 
        
@@ -309,7 +312,7 @@ void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
     rt_queue_send(&q_messageToMon, buff, sizeof (MessageToMon), Q_NORMAL);
 }
 
-/*void send_command_to_robot_SAFE(char cmd, const char * arg) {
+void send_command_to_robot_SAFE(char cmd, const char * arg) {
 
     static int cmpt = 0;
 
@@ -339,20 +342,22 @@ void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
 
 
     rt_mutex_release(&mutex_send_command_to_robot);
-}*/
+}
 
-void f_openCamera(void * arg) {
-    int err;
-
+void f_openCamera(void *arg) {
     /* INIT */
-    RT_TASK_INFO info;
+    RT_TASK_INFO info ;
     rt_task_inquire(NULL, &info);
     printf("Init %s\n", info.name);
     rt_sem_p(&sem_barrier, TM_INFINITE);
+   
+    
+    int err;
 
     while (1) {
 
         rt_sem_p(&sem_openCamera, TM_INFINITE);
+        rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
 #ifdef _WITH_TRACE_
         printf("%s : sem_openCamera arrived => open camera\n", info.name);
 #endif
@@ -363,9 +368,9 @@ void f_openCamera(void * arg) {
             printf("%s : the camera is opened\n", info.name);
 #endif
             
-            rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
+            
             cam_Started = 1;
-            rt_mutex_release(&mutex_cam_Started);
+         
          
             //MessageToMon msg;
             //send(&msg, HEADER_STM_ACK);
@@ -379,12 +384,11 @@ void f_openCamera(void * arg) {
             set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
             write_in_queue(&q_messageToMon, msg);
         }
-       
+          rt_mutex_release(&mutex_cam_Started);
     }
 }
 
 void f_manageImage(void *arg) {
-    int err;
     /* INIT */
     RT_TASK_INFO info;
     rt_task_inquire(NULL, &info);
@@ -393,17 +397,27 @@ void f_manageImage(void *arg) {
 
     rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
-    
+    int err;
+    printf(" je vais rentrer dans le while \n");
     while (1) {
         rt_task_wait_period(NULL);
-#ifdef _WITH_TRACE_
-        printf("%s :je suis dans le while \n");
-#endif
+        rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
+       
+       if(cam_Started) {
+            printf("Je rentre dans le while \n");
+            get_image(&maCamera, &monImage);
+        printf("j'envoie une image\n ");
+        compress_image(&monImage, &Image_envoi);
+        send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi);
       
+       }
+        rt_mutex_release(&mutex_cam_Started) ;
+    }
+}
 
         
             
-       rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
+      /* rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
        
        if(cam_Started) {
             printf("Je rentre dans le while \n");
@@ -413,7 +427,7 @@ void f_manageImage(void *arg) {
 #ifdef _WITH_TRACE_
                 printf("%s :getting image \n");
 #endif
-               /* rt_mutex_acquire(&mutex_chercheArene, TM_INFINITE);
+               rt_mutex_acquire(&mutex_chercheArene, TM_INFINITE);
                 if (chercheArene == 1) {
 
                     err = detect_arena(&monImage, &monArene);
@@ -464,7 +478,7 @@ void f_manageImage(void *arg) {
 
                     } else {
                         Image_pos = Image_arene;
-                    }*/
+                    }
 
 
                     printf("j'envoie une image\n ");
@@ -479,7 +493,7 @@ void f_manageImage(void *arg) {
 
                 }
 
-           /* } else {
+           } else {
 #ifdef _WITH_TRACE_
                 printf("%s :not getting image \n");
 #endif
@@ -489,11 +503,11 @@ void f_manageImage(void *arg) {
 
             }
         
-       }*/
-       rt_mutex_release(&mutex_cam_Started) ;
-    }
+       }
+       rt_mutex_release(&mutex_cam_Started) ;*/
+   // }
     // créer priorités open et manage
-}
+//}
 
 void f_startRobotWithWatchdog(void * arg) {
     int err;
