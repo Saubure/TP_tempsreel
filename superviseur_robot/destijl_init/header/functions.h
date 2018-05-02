@@ -38,12 +38,13 @@ extern RT_TASK th_startRobot;
 extern RT_TASK th_move;
 extern RT_TASK th_battery;
 extern RT_TASK th_openCamera;
-extern RT_TASK th_Image;
+extern RT_TASK th_manageImage;
 
 extern RT_MUTEX mutex_chercheArene ;
 extern RT_MUTEX mutex_robotStarted;
 extern RT_MUTEX mutex_move;
 extern RT_MUTEX mutex_send_command_to_robot ;
+extern RT_MUTEX mutex_cam_Started;
 
 
 extern RT_SEM sem_barrier;
@@ -53,7 +54,7 @@ extern RT_SEM sem_startRobot;
 extern RT_SEM sem_openCamera ;
 extern RT_SEM sem_areneOk ;
 extern RT_SEM sem_startRobotWD;
-extern RT_SEM sem_camStarted;
+
 
 extern RT_QUEUE q_messageToMon;
 
@@ -63,7 +64,7 @@ extern char move;
 extern int chercheArene;
 extern int position;
 extern int areneOk;
-extern int camStarted;
+extern int cam_Started;
 
 extern int MSG_QUEUE_SIZE;
 

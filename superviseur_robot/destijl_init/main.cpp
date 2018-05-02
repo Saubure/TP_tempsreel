@@ -37,13 +37,14 @@ int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TBATTERY = 35 ;
-int PRIORITY_TOPENCAMERA = 15;
-int PRIORITY_MANAGEIMAGE = 10 ;
+int PRIORITY_TOPENCAMERA = 25;
+int PRIORITY_MANAGEIMAGE = 20 ;
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 RT_MUTEX mutex_chercheArene ;
 RT_MUTEX mutex_send_command_to_robot ;
+RT_MUTEX mutex_cam_Started;
 
 
 // Déclaration des sémaphores
@@ -54,7 +55,7 @@ RT_SEM sem_startRobot;
 RT_SEM sem_openCamera ;
 RT_SEM sem_areneOk ;
 RT_SEM sem_startRobotWD;
-RT_SEM sem_camStarted;
+
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
 
@@ -67,7 +68,7 @@ char move = DMB_STOP_MOVE;
 int chercheArene = 0 ;
 int position = 0 ;
 int areneOk = 0 ;
-int camStarted = 0;
+int cam_Started = 0;
 
 /**
  * \fn void initStruct(void)
@@ -126,6 +127,10 @@ void initStruct(void) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+        if (err = rt_mutex_create(&mutex_cam_Started, NULL)) {
+        printf("Error mutex create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
 
     
     /* Creation du semaphore */
@@ -157,10 +162,7 @@ void initStruct(void) {
         printf("Error semaphore create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-        if (err = rt_sem_create(&sem_camStarted, NULL,0, S_FIFO)) {
-        printf("Error semaphore create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
+
 
     /* Creation des taches */
     if (err = rt_task_create(&th_server, "th_server", 0, PRIORITY_TSERVER, 0)) {
@@ -195,7 +197,7 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_manageImage, "th_Image", 0, PRIORITY_MANAGEIMAGE, 0)) {
+    if (err = rt_task_create(&th_manageImage, "th_manageImage", 0, PRIORITY_MANAGEIMAGE, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -227,7 +229,7 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_move, &f_move, NULL)) {
+    /*if (err = rt_task_start(&th_move, &f_move, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
      } 
@@ -245,7 +247,7 @@ void startTasks() {
         exit(EXIT_FAILURE);
     }
 
-   /* if (err = rt_task_start(&th_manageImage, &f_manageImage, NULL)) {
+    /*if (err = rt_task_start(&th_manageImage, &f_manageImage, NULL)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }*/

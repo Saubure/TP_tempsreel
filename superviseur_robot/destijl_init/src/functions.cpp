@@ -4,13 +4,13 @@
 #define KILL_COM_ROBOT 1
 
 char mode_start;
-Camera maCamera = *new Camera;
-Jpg Image_envoi = *new Jpg;
-Image monImage = *new Image;
-Image Image_arene = *new Image;
-Image Image_pos = *new Image;
-Arene monArene = *new Arene;
-Position maPosition = *new Position;
+Camera maCamera ;
+Jpg Image_envoi;
+Image monImage ;
+Image Image_arene;
+Image Image_pos ;
+Arene monArene;
+Position maPosition;
 
 void write_in_queue(RT_QUEUE *, MessageToMon);
 
@@ -279,7 +279,7 @@ void f_battery(void *arg) {
         printf("%s: start period\n", info.name);
 #endif 
 
-        //boucle + check connexion robot
+       
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         if (robotStarted) {
 
@@ -362,7 +362,11 @@ void f_openCamera(void * arg) {
 #ifdef _WITH_TRACE_
             printf("%s : the camera is opened\n", info.name);
 #endif
-            rt_sem_v(&sem_camStarted);
+            
+            rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
+            cam_Started = 1;
+            rt_mutex_release(&mutex_cam_Started);
+         
             //MessageToMon msg;
             //send(&msg, HEADER_STM_ACK);
             //write_in_queue(&q_messageToMon, msg);
@@ -395,19 +399,21 @@ void f_manageImage(void *arg) {
 #ifdef _WITH_TRACE_
         printf("%s :je suis dans le while \n");
 #endif
-        rt_sem_p(&sem_camStarted,TM_INFINITE);
+      
 
-        while (camStarted) {
+        
             
+       rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
        
+       if(cam_Started) {
             printf("Je rentre dans le while \n");
             get_image(&maCamera, &monImage);
             Image_arene = monImage;
-            if (&monImage != NULL) {
+           // if (&monImage != NULL) {
 #ifdef _WITH_TRACE_
                 printf("%s :getting image \n");
 #endif
-                rt_mutex_acquire(&mutex_chercheArene, TM_INFINITE);
+               /* rt_mutex_acquire(&mutex_chercheArene, TM_INFINITE);
                 if (chercheArene == 1) {
 
                     err = detect_arena(&monImage, &monArene);
@@ -458,11 +464,11 @@ void f_manageImage(void *arg) {
 
                     } else {
                         Image_pos = Image_arene;
-                    }
+                    }*/
 
 
                     printf("j'envoie une image\n ");
-                    compress_image(&Image_pos, &Image_envoi);
+                    compress_image(&Image_arene, &Image_envoi);
                    // MessageToMon msg;
                     //  set_msgToMon_header(&msg, HEADER_STM_IMAGE);
                     //set_msgToMon_data(&msg, &Image_envoi);
@@ -473,7 +479,7 @@ void f_manageImage(void *arg) {
 
                 }
 
-            } else {
+           /* } else {
 #ifdef _WITH_TRACE_
                 printf("%s :not getting image \n");
 #endif
@@ -482,8 +488,9 @@ void f_manageImage(void *arg) {
                 write_in_queue(&q_messageToMon, msg);
 
             }
-        }
-
+        
+       }*/
+       rt_mutex_release(&mutex_cam_Started) ;
     }
     // créer priorités open et manage
 }
