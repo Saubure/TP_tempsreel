@@ -10,6 +10,7 @@ Image monImage ;
 Image Image_arene;
 Image Image_pos ;
 Arene monArene;
+Arene Arenezero ;
 Position maPosition;
 
 void write_in_queue(RT_QUEUE *, MessageToMon);
@@ -387,7 +388,6 @@ void f_openCamera(void *arg) {
           rt_mutex_release(&mutex_cam_Started);
     }
 }
-
 void f_manageImage(void *arg) {
     /* INIT */
     RT_TASK_INFO info;
@@ -402,16 +402,54 @@ void f_manageImage(void *arg) {
     while (1) {
         rt_task_wait_period(NULL);
         rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
-       
-       if(cam_Started) {
-            printf("Je rentre dans le while \n");
+
+        if (cam_Started) {
+
             get_image(&maCamera, &monImage);
-        printf("j'envoie une image\n ");
-        compress_image(&monImage, &Image_envoi);
-        send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi);
-      
-       }
-        rt_mutex_release(&mutex_cam_Started) ;
+
+            rt_mutex_acquire(&mutex_chercheArene, TM_INFINITE);
+
+
+            if (chercheArene == 1) {
+                printf("Je cherche une arene");
+                err = detect_arena(&monImage, &monArene);
+
+                if (err == 0) {
+
+                    draw_arena(&monImage, &Image_arene, &monArene);
+                    compress_image(&Image_arene, &Image_envoi);
+
+                    //MessageToMon msg;
+                    // set_msgToMon_header(&msg, HEADER_STM_IMAGE);
+                    //set_msgToMon_data(&msg, &Image_envoi);
+                    //write_in_queue(&q_messageToMon, msg);
+                    send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi);
+                    rt_sem_p(&sem_areneOk, TM_INFINITE);
+
+                   if (areneOk == 0) {
+
+                       monArene = Arenezero ;
+
+                  }
+
+
+                } else {
+
+                    MessageToMon msg;
+                    set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
+                    write_in_queue(&q_messageToMon, msg);
+                    
+
+                }
+
+             chercheArene = 0;   
+
+            }
+           rt_mutex_release(&mutex_chercheArene);
+           compress_image(&monImage, &Image_envoi);
+           send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi); 
+        }
+        rt_mutex_release(&mutex_cam_Started);
     }
 }
 
