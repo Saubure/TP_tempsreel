@@ -154,6 +154,9 @@ void f_receiveFromMon(void *arg) {
             } else if (msg.data[0] == CAM_STOP_COMPUTE_POSITION) {
 
                 position = 0;
+            } else if (msg.data[0] == CAM_CLOSE){
+                rt_sem_v(&sem_closeCamera);
+            
             }
         }
     } while (err > 0);
@@ -388,6 +391,42 @@ void f_openCamera(void *arg) {
           rt_mutex_release(&mutex_cam_Started);
     }
 }
+
+
+void f_closeCamera(void*arg){
+
+/* INIT */
+    RT_TASK_INFO info ;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+ int err;
+
+    while (1) {
+
+        rt_sem_p(&sem_closeCamera, TM_INFINITE);
+        rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
+#ifdef _WITH_TRACE_
+        printf("%s : sem_closeCamera arrived => close camera\n", info.name);
+#endif
+        close_camera(&maCamera);
+        printf("ordre cam recu\n");
+        send_message_to_monitor(HEADER_STM_ACK);
+        
+       
+#ifdef _WITH_TRACE_
+            printf("%s : the camera is closed\n", info.name);
+#endif
+             
+            cam_Started = 0;
+       
+          rt_mutex_release(&mutex_cam_Started);
+    }
+}
+
+
+
+
 void f_manageImage(void *arg) {
     /* INIT */
     RT_TASK_INFO info;
@@ -419,10 +458,7 @@ void f_manageImage(void *arg) {
                     draw_arena(&monImage, &Image_arene, &monArene);
                     compress_image(&Image_arene, &Image_envoi);
 
-                    //MessageToMon msg;
-                    // set_msgToMon_header(&msg, HEADER_STM_IMAGE);
-                    //set_msgToMon_data(&msg, &Image_envoi);
-                    //write_in_queue(&q_messageToMon, msg);
+                   
                     send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi);
                     rt_sem_p(&sem_areneOk, TM_INFINITE);
 
@@ -475,98 +511,7 @@ void f_manageImage(void *arg) {
 }
 
         
-            
-      /* rt_mutex_acquire(&mutex_cam_Started, TM_INFINITE);
-       
-       if(cam_Started) {
-            printf("Je rentre dans le while \n");
-            get_image(&maCamera, &monImage);
-            Image_arene = monImage;
-           // if (&monImage != NULL) {
-#ifdef _WITH_TRACE_
-                printf("%s :getting image \n");
-#endif
-               rt_mutex_acquire(&mutex_chercheArene, TM_INFINITE);
-                if (chercheArene == 1) {
-
-                    err = detect_arena(&monImage, &monArene);
-
-                    if (err == 0) {
-
-                        draw_arena(&monImage, &Image_arene, &monArene);
-                        compress_image(&Image_arene, &Image_envoi);
-
-                        //MessageToMon msg;
-                       // set_msgToMon_header(&msg, HEADER_STM_IMAGE);
-                        //set_msgToMon_data(&msg, &Image_envoi);
-                        //write_in_queue(&q_messageToMon, msg);
-                        send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi);
-                        rt_sem_p(&sem_areneOk, TM_INFINITE);
-
-                        if (areneOk == 0) {
-
-                            delete &monArene;
-
-                        }
-
-
-                    } else {
-
-                        MessageToMon msg;
-                        set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
-                        write_in_queue(&q_messageToMon, msg);
-
-                    }
-                    rt_mutex_release(&mutex_chercheArene);
-                } else {
-
-                    if (position == 1) {
-
-                        err = detect_position(&monImage, &maPosition, &monArene);
-
-                        if (err != 0) {
-
-                            maPosition.center.x = -1;
-                            maPosition.center.y = -1;
-                            maPosition.angle = 0;
-
-                        }
-
-                        draw_position(&Image_arene, &Image_pos, &maPosition);
-
-
-                    } else {
-                        Image_pos = Image_arene;
-                    }
-
-
-                    printf("j'envoie une image\n ");
-                    compress_image(&Image_arene, &Image_envoi);
-                   // MessageToMon msg;
-                    //  set_msgToMon_header(&msg, HEADER_STM_IMAGE);
-                    //set_msgToMon_data(&msg, &Image_envoi);
-                    //write_in_queue(&q_messageToMon, msg);
-                    send_message_to_monitor(HEADER_STM_IMAGE, &Image_envoi);
-
-
-
-                }
-
-           } else {
-#ifdef _WITH_TRACE_
-                printf("%s :not getting image \n");
-#endif
-                MessageToMon msg;
-                set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
-                write_in_queue(&q_messageToMon, msg);
-
-            }
-        
-       }
-       rt_mutex_release(&mutex_cam_Started) ;*/
-   // }
-    // créer priorités open et manage
-//}
+    
 
 void f_startRobotWithWatchdog(void * arg) {
     int err;

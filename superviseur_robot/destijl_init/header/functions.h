@@ -39,12 +39,14 @@ extern RT_TASK th_move;
 extern RT_TASK th_battery;
 extern RT_TASK th_openCamera;
 extern RT_TASK th_manageImage;
+extern RT_TASK th_closeCamera;
 
 extern RT_MUTEX mutex_chercheArene ;
 extern RT_MUTEX mutex_robotStarted;
 extern RT_MUTEX mutex_move;
 extern RT_MUTEX mutex_send_command_to_robot ;
 extern RT_MUTEX mutex_cam_Started;
+
 
 
 extern RT_SEM sem_barrier;
@@ -54,6 +56,7 @@ extern RT_SEM sem_startRobot;
 extern RT_SEM sem_openCamera ;
 extern RT_SEM sem_areneOk ;
 extern RT_SEM sem_startRobotWD;
+extern RT_SEM sem_closeCamera;
 
 
 extern RT_QUEUE q_messageToMon;
@@ -77,6 +80,7 @@ extern int PRIORITY_TSTARTROBOT;
 extern int PRIORITY_TBATTERY ;
 extern int PRIORITY_TOPENCAMERA ;
 extern int PRIORITY_TMANAGEIMAGE;
+extern int PRIORITY_TCLOSECAMERA ;
 
 void f_server(void *arg);
 void f_sendToMon(void *arg);
@@ -89,6 +93,7 @@ void write_in_queue(RT_QUEUE *queue, MessageToMon msg);
 void send_command_to_robot_SAFE(char cmd, const char * arg);
 void f_openCamera(void * arg) ;
 void f_manageImage(void *arg);
+void f_closeCamera(void*arg);
 #endif /* FUNCTIONS_H */
 
 
